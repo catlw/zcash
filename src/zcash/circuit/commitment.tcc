@@ -4,11 +4,11 @@ private:
     std::shared_ptr<block_variable<FieldT>> block1;
     std::shared_ptr<block_variable<FieldT>> block2;
     std::shared_ptr<sha256_compression_function_gadget<FieldT>> hasher1;
-    std::shared_ptr<digest_variable<FieldT>> intermediate_hash;
+    std::shared_ptr<digest_variable<FieldT>> intermediate_hash; // 中间hash值
     std::shared_ptr<sha256_compression_function_gadget<FieldT>> hasher2;
 
 public:
-    note_commitment_gadget(
+    note_commitment_gadget( 
         protoboard<FieldT> &pb,
         pb_variable<FieldT>& ZERO,
         pb_variable_array<FieldT>& a_pk,

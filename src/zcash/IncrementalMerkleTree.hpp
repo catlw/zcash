@@ -14,7 +14,7 @@ namespace libzcash {
 
 class MerklePath {
 public:
-    std::vector<std::vector<bool>> authentication_path;
+    std::vector<std::vector<bool>> authentication_path; // 路径
     std::vector<bool> index;
 
     ADD_SERIALIZE_METHODS;
@@ -34,9 +34,9 @@ public:
 template<size_t Depth, typename Hash>
 class EmptyMerkleRoots {
 public:
-    EmptyMerkleRoots() {
+    EmptyMerkleRoots() { // [0]=hash(0), [i]=hash([i-1]，[i-1])
         empty_roots.at(0) = Hash();
-        for (size_t d = 1; d <= Depth; d++) {
+        for (size_t d = 1; d <= Depth; d++) { 
             empty_roots.at(d) = Hash::combine(empty_roots.at(d-1), empty_roots.at(d-1));
         }
     }
