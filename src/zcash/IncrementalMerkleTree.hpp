@@ -14,7 +14,7 @@ namespace libzcash {
 
 class MerklePath {
 public:
-    std::vector<std::vector<bool>> authentication_path; // 路径
+    std::vector<std::vector<bool>> authentication_path;
     std::vector<bool> index;
 
     ADD_SERIALIZE_METHODS;
@@ -34,9 +34,9 @@ public:
 template<size_t Depth, typename Hash>
 class EmptyMerkleRoots {
 public:
-    EmptyMerkleRoots() { // [0]=hash(0), [i]=hash([i-1]，[i-1])
+    EmptyMerkleRoots() {
         empty_roots.at(0) = Hash();
-        for (size_t d = 1; d <= Depth; d++) { 
+        for (size_t d = 1; d <= Depth; d++) {
             empty_roots.at(d) = Hash::combine(empty_roots.at(d-1), empty_roots.at(d-1));
         }
     }
@@ -56,11 +56,11 @@ class IncrementalMerkleTree {
 friend class IncrementalWitness<Depth, Hash>;
 
 public:
-    BOOST_STATIC_ASSERT(Depth >= 1);
+    BOOST_STTIC_ASSERT(Depth >= 1);
 
     IncrementalMerkleTree() { }
 
-    void append(Hash obj);
+    void append(Hash obj);  // tree.append(
     Hash root() const {
         return root(Depth, std::deque<Hash>());
     }
@@ -111,7 +111,7 @@ public:
         return tree.root(Depth, partial_path());
     }
 
-    void append(Hash obj);
+    void append(Hash obj); // wit->append() or wit.append()
 
     ADD_SERIALIZE_METHODS;
 
@@ -150,4 +150,6 @@ typedef libzcash::IncrementalWitness<INCREMENTAL_MERKLE_TREE_DEPTH, libzcash::SH
 typedef libzcash::IncrementalWitness<INCREMENTAL_MERKLE_TREE_DEPTH_TESTING, libzcash::SHA256Compress> ZCTestingIncrementalWitness;
 
 #endif /* ZCINCREMENTALMERKLETREE_H_ */
+
+
 

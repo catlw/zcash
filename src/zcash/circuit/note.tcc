@@ -1,8 +1,8 @@
 template<typename FieldT>
-class note_gadget : public gadget<FieldT> {
+class note_gadget : public gadget<FieldT> { // 基类，基本的note_gadget,仅含value和随机数r
 public:
-    pb_variable_array<FieldT> value;
-    std::shared_ptr<digest_variable<FieldT>> r;
+    pb_variable_array<FieldT> value; // 64位的value
+    std::shared_ptr<digest_variable<FieldT>> r; // 256位的随机数r
 
     note_gadget(protoboard<FieldT> &pb) : gadget<FieldT>(pb) {
         value.allocate(pb, 64);
@@ -11,43 +11,43 @@ public:
 
     void generate_r1cs_constraints() {
         for (size_t i = 0; i < 64; i++) {
-            generate_boolean_r1cs_constraint<FieldT>(
+            generate_boolean_r1cs_constraint<FieldT>( // 64位的bool约束
                 this->pb,
                 value[i],
                 "boolean_value"
             );
         }
 
-        r->generate_r1cs_constraints();
+        r->generate_r1cs_constraints(); // 随机数的约束
     }
 
-    void generate_r1cs_witness(const Note& note) {
+    void generate_r1cs_witness(const Note& note) { // 为变量生成约束
         r->bits.fill_with_bits(this->pb, uint256_to_bool_vector(note.r));
         value.fill_with_bits(this->pb, uint64_to_bool_vector(note.value));
     }
 };
 
 template<typename FieldT>
-class input_note_gadget : public note_gadget<FieldT> {
+class input_note_gadget : public note_gadget<FieldT> { // 输入的note_gadget
 private:
-    std::shared_ptr<digest_variable<FieldT>> a_pk;
-    std::shared_ptr<digest_variable<FieldT>> rho;
+    std::shared_ptr<digest_variable<FieldT>> a_pk; // addr_pk
+    std::shared_ptr<digest_variable<FieldT>> rho; // 使用phi和h_sig计算得到rho，用于计算sn P56
 
-    std::shared_ptr<digest_variable<FieldT>> commitment;
-    std::shared_ptr<note_commitment_gadget<FieldT>> commit_to_inputs;
+    std::shared_ptr<digest_variable<FieldT>> commitment; // cm
+    std::shared_ptr<note_commitment_gadget<FieldT>> commit_to_inputs; // note_commitment P39+P62
+    pb_variable<FieldT> value_enforce; // merkle_tree_gadget的参数
+    std::shared_ptr<merkle_tree_gadget<FieldT>> witness_input; // merkle_tree_gadget
 
-    pb_variable<FieldT> value_enforce;
-    std::shared_ptr<merkle_tree_gadget<FieldT>> witness_input;
-
-    std::shared_ptr<PRF_addr_a_pk_gadget<FieldT>> spend_authority;
-    std::shared_ptr<PRF_nf_gadget<FieldT>> expose_nullifiers;
+    std::shared_ptr<PRF_addr_a_pk_gadget<FieldT>> spend_authority; // 可花费证明 PRF_addr_a_pk P56
+    std::shared_ptr<PRF_nf_gadget<FieldT>> expose_nullifiers; // PRF_nf was called PRF_sn in P18 P40
 public:
     std::shared_ptr<digest_variable<FieldT>> a_sk;
 
+    // 构造函数，初始化input_note_gadget的私有变量
     input_note_gadget(
         protoboard<FieldT>& pb,
         pb_variable<FieldT>& ZERO,
-        std::shared_ptr<digest_variable<FieldT>> nullifier,
+        std::shared_ptr<digest_variable<FieldT>> nullifier, // serial number
         digest_variable<FieldT> rt
     ) : note_gadget<FieldT>(pb) {
         a_sk.reset(new digest_variable<FieldT>(pb, 252, ""));
@@ -55,14 +55,14 @@ public:
         rho.reset(new digest_variable<FieldT>(pb, 256, ""));
         commitment.reset(new digest_variable<FieldT>(pb, 256, ""));
 
-        spend_authority.reset(new PRF_addr_a_pk_gadget<FieldT>(
+        spend_authority.reset(new PRF_addr_a_pk_gadget<FieldT>( 
             pb,
             ZERO,
             a_sk->bits,
             a_pk
         ));
 
-        expose_nullifiers.reset(new PRF_nf_gadget<FieldT>(
+        expose_nullifiers.reset(new PRF_nf_gadget<FieldT>( 
             pb,
             ZERO,
             a_sk->bits,
@@ -70,7 +70,7 @@ public:
             nullifier
         ));
 
-        commit_to_inputs.reset(new note_commitment_gadget<FieldT>(
+        commit_to_inputs.reset(new note_commitment_gadget<FieldT>( 
             pb,
             ZERO,
             a_pk->bits,
@@ -89,9 +89,10 @@ public:
             value_enforce
         ));
     }
-
-    void generate_r1cs_constraints() {
-        note_gadget<FieldT>::generate_r1cs_constraints();
+    
+    // 约束函数，为input_note_gadget的变量生成约束
+    void generate_r1cs_constraints() { 
+        note_gadget<FieldT>::generate_r1cs_constraints(); // 为基类生成约束
 
         a_sk->generate_r1cs_constraints();
         rho->generate_r1cs_constraints();
@@ -121,6 +122,7 @@ public:
         witness_input->generate_r1cs_constraints();
     }
 
+    // 证据函数，为input_note_gadget的变量生成证据
     void generate_r1cs_witness(
         const MerklePath& path,
         const SpendingKey& key,
@@ -171,12 +173,12 @@ public:
 };
 
 template<typename FieldT>
-class output_note_gadget : public note_gadget<FieldT> {
+class output_note_gadget : public note_gadget<FieldT> { // 输出的note_gadget
 private:
     std::shared_ptr<digest_variable<FieldT>> rho;
     std::shared_ptr<digest_variable<FieldT>> a_pk;
 
-    std::shared_ptr<PRF_rho_gadget<FieldT>> prevent_faerie_gold;
+    std::shared_ptr<PRF_rho_gadget<FieldT>> prevent_faerie_gold; // PRF_rho_gadget P56
     std::shared_ptr<note_commitment_gadget<FieldT>> commit_to_outputs;
 
 public:

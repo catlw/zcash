@@ -1,5 +1,5 @@
 template<typename FieldT>
-class PRF_gadget : gadget<FieldT> {
+class PRF_gadget : gadget<FieldT> { // PRF基类
 private:
     std::shared_ptr<block_variable<FieldT>> block;
     std::shared_ptr<sha256_compression_function_gadget<FieldT>> hasher;
@@ -58,7 +58,7 @@ public:
 };
 
 template<typename FieldT>
-class PRF_addr_a_pk_gadget : public PRF_gadget<FieldT> {
+class PRF_addr_a_pk_gadget : public PRF_gadget<FieldT> { // PRF^addr_x
 public:
     PRF_addr_a_pk_gadget(
         protoboard<FieldT>& pb,
@@ -69,7 +69,7 @@ public:
 };
 
 template<typename FieldT>
-class PRF_nf_gadget : public PRF_gadget<FieldT> {
+class PRF_nf_gadget : public PRF_gadget<FieldT> { // PRF^nf
 public:
     PRF_nf_gadget(
         protoboard<FieldT>& pb,
@@ -81,7 +81,7 @@ public:
 };
 
 template<typename FieldT>
-class PRF_pk_gadget : public PRF_gadget<FieldT> {
+class PRF_pk_gadget : public PRF_gadget<FieldT> { // PRF^addr_pk
 public:
     PRF_pk_gadget(
         protoboard<FieldT>& pb,
@@ -94,7 +94,7 @@ public:
 };
 
 template<typename FieldT>
-class PRF_rho_gadget : public PRF_gadget<FieldT> {
+class PRF_rho_gadget : public PRF_gadget<FieldT> { // PRF^rho
 public:
     PRF_rho_gadget(
         protoboard<FieldT>& pb,
@@ -105,3 +105,4 @@ public:
         std::shared_ptr<digest_variable<FieldT>> result
     ) : PRF_gadget<FieldT>(pb, ZERO, 0, nonce, 1, 0, phi, h_sig, result) {}
 };
+// 以上的gadget可以在/doc/protocol.pdf P56找到

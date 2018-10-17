@@ -254,7 +254,7 @@ public:
                 throw std::invalid_argument("Constraint system not satisfied by inputs");
             }
 
-            primary_input = pb.primary_input();
+            primary_input = pb.primary_input(); // primary_input=(rt, sn_i_old, cm_i_new, vpub_old, vpub_new, h_i_old) --P29
             aux_input = pb.auxiliary_input();
         }
 

@@ -8,6 +8,7 @@
 
 namespace libzcash {
 
+// 合并压缩512bits
 SHA256Compress SHA256Compress::combine(const SHA256Compress& a, const SHA256Compress& b)
 {
     SHA256Compress res = SHA256Compress();
@@ -20,8 +21,9 @@ SHA256Compress SHA256Compress::combine(const SHA256Compress& a, const SHA256Comp
     return res;
 }
 
+// 路径填充的类模板
 template <size_t Depth, typename Hash>
-class PathFiller {
+class PathFiller { 
 private:
     std::deque<Hash> queue;
     static EmptyMerkleRoots<Depth, Hash> emptyroots;
@@ -42,14 +44,17 @@ public:
 
 };
 
+// 为路径填充中的空根分配空间
 template<size_t Depth, typename Hash>
-EmptyMerkleRoots<Depth, Hash> PathFiller<Depth, Hash>::emptyroots;
+EmptyMerkleRoots<Depth, Hash> PathFiller<Depth, Hash>::emptyroots; 
 
+// 为MerkleTree的空根分配空间
 template<size_t Depth, typename Hash>
-EmptyMerkleRoots<Depth, Hash> IncrementalMerkleTree<Depth, Hash>::emptyroots;
+EmptyMerkleRoots<Depth, Hash> IncrementalMerkleTree<Depth, Hash>::emptyroots; 
 
+// MerkleTree检查
 template<size_t Depth, typename Hash>
-void IncrementalMerkleTree<Depth, Hash>::wfcheck() const {
+void IncrementalMerkleTree<Depth, Hash>::wfcheck() const { 
     if (parents.size() >= Depth) {
         throw std::ios_base::failure("tree has too many parents");
     }
@@ -70,8 +75,9 @@ void IncrementalMerkleTree<Depth, Hash>::wfcheck() const {
     }
 }
 
+// MerkleTree追加cmt
 template<size_t Depth, typename Hash>
-void IncrementalMerkleTree<Depth, Hash>::append(Hash obj) {
+void IncrementalMerkleTree<Depth, Hash>::append(Hash obj) { 
     if (is_complete(Depth)) {
         throw std::runtime_error("tree is full");
     }
@@ -91,7 +97,7 @@ void IncrementalMerkleTree<Depth, Hash>::append(Hash obj) {
         right = boost::none;
 
         for (size_t i = 0; i < Depth; i++) {
-            if (i < parents.size()) {
+            if (i < parents.size()) { // parents为IncrementalMerkleTree私有成员变量,始终维护可进行combine的MerkleTree的节点表
                 if (parents[i]) {
                     combined = Hash::combine(*parents[i], *combined);
                     parents[i] = boost::none;
@@ -104,35 +110,49 @@ void IncrementalMerkleTree<Depth, Hash>::append(Hash obj) {
                 break;
             }
         }
+
+        /** 假定 Depth = 5
+         *  left   right  combined       parents0, 1, 2, 3
+         *  === append(cmt1), append(cmt3) ===
+         *  cmt1   cmt2     none         none, none, none, none  
+         *  === append(cmt3), append(cmt4) ===
+         *  cmt3   cmt4    h12           h12, none, none, none
+         *  === append(cmt5), append(cmt6) ===
+         *  cmt5   cmt6    h34,h14       none, h14, none, none
+         *  === append(cmt7), append(cmt8) ===
+         *  cmt7   cmt8    h56           h56, h14, none, none     is_complete if depth = 3
+         *  === append(cmt9) ===
+         *  cmt9   none    h78,h58,h18   none, none, h18, none
+        */
     }
 }
 
 // This is for allowing the witness to determine if a subtree has filled
 // to a particular depth, or for append() to ensure we're not appending
-// to a full tree.
+// to a full tree. 判满
 template<size_t Depth, typename Hash>
 bool IncrementalMerkleTree<Depth, Hash>::is_complete(size_t depth) const {
-    if (!left || !right) {
+    if (!left || !right) { // 左右孩子不为空
         return false;
     }
 
-    if (parents.size() != (depth - 1)) {
+    if (parents.size() != (depth - 1)) { // 达到预设高度
         return false;
     }
 
-    BOOST_FOREACH(const boost::optional<Hash>& parent, parents) {
-        if (!parent) {
+    BOOST_FOREACH(const boost::optional<Hash>& parent, parents) { 
+        if (!parent) {  // 
             return false;
         }
     }
 
-    return true;
+    return true; // 满二叉树
 }
 
 // This finds the next "depth" of an unfilled subtree, given that we've filled
-// `skip` uncles/subtrees.
+// `skip` uncles/subtrees. // 当前MerkleTree可构造的层数(不含叶子层)
 template<size_t Depth, typename Hash>
-size_t IncrementalMerkleTree<Depth, Hash>::next_depth(size_t skip) const {
+size_t IncrementalMerkleTree<Depth, Hash>::next_depth(size_t skip) const { 
     if (!left) {
         if (skip) {
             skip--;
@@ -166,7 +186,7 @@ size_t IncrementalMerkleTree<Depth, Hash>::next_depth(size_t skip) const {
     return d + skip;
 }
 
-// This calculates the root of the tree.
+// This calculates the root of the tree. 计算Merkle根
 template<size_t Depth, typename Hash>
 Hash IncrementalMerkleTree<Depth, Hash>::root(size_t depth,
                                               std::deque<Hash> filler_hashes) const {
@@ -196,11 +216,20 @@ Hash IncrementalMerkleTree<Depth, Hash>::root(size_t depth,
         d++;
     }
 
+    /** 假定 Depth = 5
+     *  combine_left   combine_right   root      parents0, 1, 2, 3
+     *    cmt7             cmt8        h78       h56, h14, none, none
+     *    cmt7             cmt8        h58       h56, h14, none, none
+     *    cmt7             cmt8        h18       h56, h14, none, none
+     *    cmt7             cmt8        h1_d3     h56, h14, none, none  // 填充
+     *    cmt7             cmt8        h1_d4     h56, h14, none, none  // 填充
+    */
+
     return root;
 }
 
 // This constructs an authentication path into the tree in the format that the circuit
-// wants. The caller provides `filler_hashes` to fill in the uncle subtrees.
+// wants. The caller provides `filler_hashes` to fill in the uncle subtrees. 获取Merkle路径
 template<size_t Depth, typename Hash>
 MerklePath IncrementalMerkleTree<Depth, Hash>::path(std::deque<Hash> filler_hashes) const {
     if (!left) {
@@ -212,10 +241,14 @@ MerklePath IncrementalMerkleTree<Depth, Hash>::path(std::deque<Hash> filler_hash
     std::vector<Hash> path;
     std::vector<bool> index;
 
-    if (right) {
+    /*  left   right    parents0, 1, 2, 3
+     *  cmt7   cmt8     h56, h14, none, none 
+     * 当前最新的节点为右节点cmt8
+     */
+    if (right) { // 验证右节点在merkle树上
         index.push_back(true);
         path.push_back(*left);
-    } else {
+    } else {   // 验证左节点在merkle树上，此时右节点为空
         index.push_back(false);
         path.push_back(filler.next(0));
     }
@@ -251,23 +284,25 @@ MerklePath IncrementalMerkleTree<Depth, Hash>::path(std::deque<Hash> filler_hash
         merkle_path.push_back(tmp_b);
     }
 
-    std::reverse(merkle_path.begin(), merkle_path.end());
+    std::reverse(merkle_path.begin(), merkle_path.end()); // 由逆序转换为正序，即从root到leaf
     std::reverse(index.begin(), index.end());
 
-    return MerklePath(merkle_path, index);
+    return MerklePath(merkle_path, index); // 返回MerklePath实例
 }
 
+// 获取部分路径
 template<size_t Depth, typename Hash>
 std::deque<Hash> IncrementalWitness<Depth, Hash>::partial_path() const {
     std::deque<Hash> uncles(filled.begin(), filled.end());
 
-    if (cursor) {
+    if (cursor) { // IncrementalMerkleTree的光标
         uncles.push_back(cursor->root(cursor_depth));
     }
 
     return uncles;
 }
 
+// witness追加bucket_commitment
 template<size_t Depth, typename Hash>
 void IncrementalWitness<Depth, Hash>::append(Hash obj) {
     if (cursor) {
@@ -293,7 +328,7 @@ void IncrementalWitness<Depth, Hash>::append(Hash obj) {
     }
 }
 
-template class IncrementalMerkleTree<INCREMENTAL_MERKLE_TREE_DEPTH, SHA256Compress>;
+template class IncrementalMerkleTree<INCREMENTAL_MERKLE_TREE_DEPTH, SHA256Compress>; // 20层， sha256
 template class IncrementalMerkleTree<INCREMENTAL_MERKLE_TREE_DEPTH_TESTING, SHA256Compress>;
 
 template class IncrementalWitness<INCREMENTAL_MERKLE_TREE_DEPTH, SHA256Compress>;

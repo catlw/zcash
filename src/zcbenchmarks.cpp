@@ -62,7 +62,7 @@ double benchmark_parameter_loading()
     return ret;
 }
 
-double benchmark_create_joinsplit()
+double benchmark_create_joinsplit() // 验证proof
 {
     // TODO: #808
     uint256 pubKeyHash;

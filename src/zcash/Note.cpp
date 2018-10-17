@@ -16,6 +16,7 @@ Note::Note() {
     value = 0;
 }
 
+// sprout commitment = sha256(leading_byte, a_pk, v, rho, r, padding) --protocol.pdf P62
 uint256 Note::cm() const {
     unsigned char discriminant = 0xb0;
 
